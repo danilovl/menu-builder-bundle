@@ -1,0 +1,9 @@
+menu_builder_dashboard:
+  resource: '../../Controller/DashboardController.php'
+  type: attribute
+
+menu_builder_api:
+  resource:
+    path: ../../Controller/Api/
+    namespace: Danilovl\MenuBuilderBundle\Controller\Api
+  type: attribute

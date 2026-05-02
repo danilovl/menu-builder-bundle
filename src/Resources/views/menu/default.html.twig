@@ -1,0 +1,166 @@
+{#
+Default menu template.
+
+Override-able blocks:
+    root            — outermost wrapper
+    list            — <ul> wrapper around top-level items
+    empty           — fallback when items is empty
+
+Variables in scope (passed via render()):
+    items           — top-level menu items
+    options         — full options array passed to danilovl_menu_builder_render
+    locale          — preview/active locale (string|null)
+    current_route   — current route (string|null) used to mark active items
+    depth           — current depth (int)
+
+Per-item rendering is performed by the `render_item` macro to avoid
+Twig's block-scope limitation: {{ block(...) }} does not propagate
+variables defined via {% with %} or {% for %} inside the calling block.
+Macros accept explicit arguments, so the scope is well-defined.
+#}
+
+{%- import _self as menu -%}
+
+{%- block root -%}
+    {%- set css_root = options.css.root|default('mb-menu') -%}
+    {%- set theme = options.theme|default('default') -%}
+
+    <nav class="{{ css_root }} {{ css_root }}--{{ theme }}">
+        {%- if items is empty -%}
+            {{- block('empty') -}}
+        {%- else -%}
+            {{- block('list') -}}
+        {%- endif -%}
+    </nav>
+{%- endblock -%}
+
+{%- block list -%}
+    {%- set css_list = options.css.list|default('mb-menu__list') -%}
+    <ul class="{{ css_list }} {{ css_list }}--depth-{{ depth }}">
+        {%- for item in items -%}
+            {{- menu.render_item(item, depth, options, locale, current_route) -}}
+        {%- endfor -%}
+    </ul>
+{%- endblock -%}
+
+{%- block empty -%}
+    {%- set css_empty = options.css.empty|default('mb-menu__empty') -%}
+    <div class="{{ css_empty }}">{{ options.empty_text|default('') }}</div>
+{%- endblock -%}
+
+{%- macro render_item(item, depth, options, locale, current_route) -%}
+    {%- import _self as menu -%}
+    {%- set max_depth = options.max_depth|default(null) -%}
+    {%- set css_item = options.css.item|default('mb-menu__item') -%}
+    {%- set is_active = danilovl_menu_builder_is_active(item, current_route) -%}
+    {%- set has_visible_children = item.hasChildren and (max_depth is null or depth + 1 <= max_depth) -%}
+    {%- set item_type = item.type|default('link') -%}
+    {%- set classes = [css_item, css_item ~ '--' ~ item_type] -%}
+    {%- if is_active -%}{%- set classes = classes|merge([css_item ~ '--active']) -%}{%- endif -%}
+    {%- if has_visible_children -%}{%- set classes = classes|merge([css_item ~ '--has-children']) -%}{%- endif -%}
+    {%- if not item.isActive -%}{%- set classes = classes|merge([css_item ~ '--inactive']) -%}{%- endif -%}
+    {%- for extra in item.cssClasses|default([]) -%}{%- set classes = classes|merge([extra]) -%}{%- endfor -%}
+
+    {%- if item_type == 'divider' -%}
+        <li class="{{ classes|join(' ') }}" role="separator"></li>
+    {%- elseif item_type == 'heading' -%}
+        <li class="{{ classes|join(' ') }}">
+            <span class="{{ css_item }}-heading">{{ danilovl_menu_builder_label(item, locale) }}</span>
+        </li>
+    {%- elseif item_type == 'mega' -%}
+        <li class="{{ classes|join(' ') }}">
+            {{- menu.render_link(item, options, locale, is_active, has_visible_children) -}}
+            {%- if has_visible_children -%}
+                {{- menu.render_mega(item, depth, options, locale, current_route) -}}
+            {%- endif -%}
+        </li>
+    {%- else -%}
+        <li class="{{ classes|join(' ') }}">
+            {{- menu.render_link(item, options, locale, is_active, has_visible_children) -}}
+            {%- if has_visible_children -%}
+                {{- menu.render_children(item, depth, options, locale, current_route) -}}
+            {%- endif -%}
+        </li>
+    {%- endif -%}
+{%- endmacro -%}
+
+{%- macro render_link(item, options, locale, is_active, has_visible_children) -%}
+    {%- import _self as menu -%}
+    {%- set css_link = options.css.link|default('mb-menu__link') -%}
+    {%- set url = danilovl_menu_builder_url(item, locale) -%}
+    {%- set target = danilovl_menu_builder_target(item) -%}
+    {%- set is_external = (item.type|default('link')) == 'external' -%}
+    {%- if is_external and target is null -%}{%- set target = '_blank' -%}{%- endif -%}
+    {%- set rel = (target == '_blank') ? 'noopener noreferrer' : null -%}
+    {%- set link_classes = [css_link] -%}
+    {%- if is_active -%}{%- set link_classes = link_classes|merge([css_link ~ '--active']) -%}{%- endif -%}
+
+    {%- if url == '#' -%}
+        <span class="{{ link_classes|join(' ') }}">{{- menu.render_link_inner(item, options, locale) -}}</span>
+    {%- else -%}
+        <a
+                class="{{ link_classes|join(' ') }}"
+                href="{{ url }}"
+                {%- if target %} target="{{ target }}"{% endif -%}
+                {%- if rel %} rel="{{ rel }}"{% endif -%}
+        >{{- menu.render_link_inner(item, options, locale) -}}</a>
+    {%- endif -%}
+{%- endmacro -%}
+
+{%- macro render_link_inner(item, options, locale) -%}
+    {%- import _self as menu -%}
+    {{- menu.render_icon(item, options) -}}
+    {{- menu.render_label(item, options, locale) -}}
+{%- endmacro -%}
+
+{%- macro render_icon(item, options) -%}
+    {%- set css_icon = options.css.icon|default('mb-menu__icon') -%}
+    {%- if item.iconImage -%}
+        <img class="{{ css_icon }} {{ css_icon }}--image" src="{{ item.iconImage }}" alt="" aria-hidden="true"/>
+    {%- elseif item.icon -%}
+        <i class="{{ css_icon }} {{ item.icon }}" aria-hidden="true"></i>
+    {%- endif -%}
+{%- endmacro -%}
+
+{%- macro render_label(item, options, locale) -%}
+    {%- set css_label = options.css.label|default('mb-menu__label') -%}
+    <span class="{{ css_label }}">{{ danilovl_menu_builder_label(item, locale) }}</span>
+{%- endmacro -%}
+
+{%- macro render_children(item, depth, options, locale, current_route) -%}
+    {%- import _self as menu -%}
+    {%- set css_children = options.css.children|default('mb-menu__children') -%}
+    {%- set css_list = options.css.list|default('mb-menu__list') -%}
+    {%- set child_depth = depth + 1 -%}
+    <div class="{{ css_children }}">
+        <ul class="{{ css_list }} {{ css_list }}--depth-{{ child_depth }}">
+            {%- for child in item.children -%}
+                {{- menu.render_item(child, child_depth, options, locale, current_route) -}}
+            {%- endfor -%}
+        </ul>
+    </div>
+{%- endmacro -%}
+
+{%- macro render_mega(item, depth, options, locale, current_route) -%}
+    {%- import _self as menu -%}
+    {%- set css_mega = options.css.mega|default('mb-menu__mega') -%}
+    {%- set columns = {} -%}
+    {%- for child in item.children -%}
+        {%- set col = child.column|default(0) -%}
+        {%- set existing = columns[col]|default([]) -%}
+        {%- set columns = columns|merge({ (col): existing|merge([child]) }) -%}
+    {%- endfor -%}
+    {%- set sorted_keys = columns|keys|sort -%}
+
+    <div class="{{ css_mega }}">
+        {%- for col_key in sorted_keys -%}
+            <div class="{{ css_mega }}-column" data-column="{{ col_key }}">
+                <ul class="{{ css_mega }}-list">
+                    {%- for child in columns[col_key] -%}
+                        {{- menu.render_item(child, depth + 1, options, locale, current_route) -}}
+                    {%- endfor -%}
+                </ul>
+            </div>
+        {%- endfor -%}
+    </div>
+{%- endmacro -%}

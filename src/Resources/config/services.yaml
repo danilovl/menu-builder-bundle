@@ -1,0 +1,27 @@
+services:
+  _defaults:
+    autowire: true
+    autoconfigure: true
+
+  _instanceof:
+    Danilovl\MenuBuilderBundle\Matcher\Voter\VoterInterface:
+      tags: ['danilovl.menu_builder.voter']
+
+  "Danilovl\\MenuBuilderBundle\\":
+    resource: '../../*'
+    exclude:
+      - '../../DependencyInjection'
+      - '../../Dto'
+      - '../../Entity'
+      - '../../Model'
+      - '../../Exception'
+      - '../../Attribute'
+      - '../../Matcher/Voter/RegexVoter.php'
+      - '../../MenuBuilderBundle.php'
+
+  Danilovl\MenuBuilderBundle\Matcher\Matcher:
+    arguments:
+      $voters: !tagged_iterator danilovl.menu_builder.voter
+
+  Danilovl\MenuBuilderBundle\Service\UserCatalogInterface:
+    alias: Danilovl\MenuBuilderBundle\Service\NullUserCatalog

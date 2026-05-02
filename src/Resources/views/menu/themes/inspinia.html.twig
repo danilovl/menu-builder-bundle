@@ -1,0 +1,118 @@
+{#
+Inspinia / metismenu sidebar theme.
+
+Usage:
+    {{ danilovl_menu_builder_render('main', {
+        template: '@MenuBuilder/menu/themes/inspinia.html.twig',
+        current_route: app.request.attributes.get('_route'),
+        locale: app.request.locale,
+    }) }}
+
+Options:
+    nav_class           — outer <nav> classes (default 'navbar-default navbar-static-side')
+    ul_id               — <ul> id (default 'side-menu')
+    ul_class            — <ul> classes (default 'nav metismenu')
+    show_logo_header    — render the leading <li.nav-header> (default true)
+    logo_inner          — raw HTML inside .logo-element (default '')
+    icon_suffix_class   — class appended to the icon (default 'me-2')
+#}
+{% extends '@MenuBuilder/menu/default.html.twig' %}
+
+{%- block root -%}
+    {%- set nav_class = options.nav_class|default('navbar-default navbar-static-side') -%}
+    <nav class="{{ nav_class }}" role="navigation">
+        <div class="sidebar-collapse">
+            {{- block('list') -}}
+        </div>
+    </nav>
+{%- endblock -%}
+
+{%- block list -%}
+    {%- set ul_id = options.ul_id|default('side-menu') -%}
+    {%- set ul_class = options.ul_class|default('nav metismenu') -%}
+    {%- set show_logo_header = options.show_logo_header ?? true -%}
+    <ul class="{{ ul_class }}" id="{{ ul_id }}" style="display: block !important;">
+        {%- if show_logo_header -%}
+            <li class="nav-header">
+                <div class="logo-element">{{- options.logo_inner|default('')|raw -}}</div>
+            </li>
+        {%- endif -%}
+        {%- for item in items -%}
+            {{- block('item') -}}
+        {%- endfor -%}
+    </ul>
+{%- endblock -%}
+
+{%- block item -%}
+    {%- set max_depth = options.max_depth|default(null) -%}
+    {%- set has_visible_children = item.hasChildren and (max_depth is null or depth + 1 <= max_depth) -%}
+    {%- set is_active = danilovl_menu_builder_is_active(item, current_route) -%}
+    {%- set item_type = item.type|default('link') -%}
+    {%- set classes = ['nav-item'] -%}
+    {%- if is_active -%}{%- set classes = classes|merge(['active']) -%}{%- endif -%}
+    {%- if not item.isActive -%}{%- set classes = classes|merge(['inactive']) -%}{%- endif -%}
+    {%- if has_visible_children -%}{%- set classes = classes|merge(['has-children']) -%}{%- endif -%}
+    {%- for extra in item.cssClasses|default([]) -%}{%- set classes = classes|merge([extra]) -%}{%- endfor -%}
+
+    {%- if item_type == 'divider' -%}
+        <li class="nav-divider" role="separator"></li>
+    {%- elseif item_type == 'heading' -%}
+        <li class="nav-header">
+            <span>{{ danilovl_menu_builder_label(item, locale) }}</span>
+        </li>
+    {%- else -%}
+        <li class="{{ classes|join(' ') }}">
+            {{- block('link') -}}
+            {%- if has_visible_children -%}
+                {{- block('children') -}}
+            {%- endif -%}
+        </li>
+    {%- endif -%}
+{%- endblock -%}
+
+{%- block link -%}
+    {%- set url = danilovl_menu_builder_url(item, locale) -%}
+    {%- set target = danilovl_menu_builder_target(item) -%}
+    {%- set is_external = (item.type|default('link')) == 'external' -%}
+    {%- if is_external and target is null -%}{%- set target = '_blank' -%}{%- endif -%}
+    {%- set rel = (target == '_blank') ? 'noopener noreferrer' : null -%}
+    {%- set icon_suffix = options.icon_suffix_class|default('me-2') -%}
+    {%- set link_classes = ['nav-link'] -%}
+    {%- if has_visible_children -%}{%- set link_classes = link_classes|merge(['has-arrow']) -%}{%- endif -%}
+
+    <a
+            class="{{ link_classes|join(' ') }}"
+            href="{{ url }}"
+            {%- if has_visible_children %} aria-expanded="{{ is_active ? 'true' : 'false' }}"{% endif -%}
+            {%- if target %} target="{{ target }}"{% endif -%}
+            {%- if rel %} rel="{{ rel }}"{% endif -%}
+    >
+        {%- if item.iconImage -%}
+            <img class="{{ icon_suffix }}" src="{{ item.iconImage }}" alt="" aria-hidden="true"/>
+        {%- elseif item.icon -%}
+            <i class="{{ item.icon }}{% if icon_suffix %} {{ icon_suffix }}{% endif %}" aria-hidden="true"></i>
+        {%- endif -%}
+        {{ danilovl_menu_builder_label(item, locale) }}
+        {%- if has_visible_children -%}
+            <span class="fa arrow"></span>
+        {%- endif -%}
+    </a>
+{%- endblock -%}
+
+{%- block children -%}
+    {%- set child_items = item.children -%}
+    {%- set parent_depth = depth -%}
+    <ul class="nav nav-second-level{% if is_active %} in{% endif %}" aria-expanded="{{ is_active ? 'true' : 'false' }}">
+        {%- with {
+            items: child_items,
+            options: options,
+            locale: locale,
+            current_route: current_route,
+            depth: parent_depth + 1,
+        } only -%}
+            {%- for item in items -%}
+                {{- block('item') -}}
+            {%- endfor -%}
+        {%- endwith -%}
+    </ul>
+{%- endblock -%}

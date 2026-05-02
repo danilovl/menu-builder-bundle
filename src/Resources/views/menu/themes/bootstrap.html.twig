@@ -1,0 +1,86 @@
+{#
+Bootstrap 5 navbar theme.
+
+Usage:
+    {{ danilovl_menu_builder_render('main', {
+        template: '@MenuBuilder/menu/themes/bootstrap.html.twig',
+        current_route: app.request.attributes.get('_route'),
+    }) }}
+#}
+{% extends '@MenuBuilder/menu/default.html.twig' %}
+
+{%- block root -%}
+    <nav class="navbar navbar-expand-lg">
+        <div class="container-fluid">
+            {%- if items is empty -%}
+                {{- block('empty') -}}
+            {%- else -%}
+                {{- block('list') -}}
+            {%- endif -%}
+        </div>
+    </nav>
+{%- endblock -%}
+
+{%- block list -%}
+    <ul class="navbar-nav me-auto mb-2 mb-lg-0 nav-depth-{{ depth }}">
+        {%- for item in items -%}
+            {{- block('item') -}}
+        {%- endfor -%}
+    </ul>
+{%- endblock -%}
+
+{%- block item -%}
+    {%- set is_active = danilovl_menu_builder_is_active(item, current_route) -%}
+    {%- set has_visible_children = item.hasChildren and (options.max_depth is null or depth + 1 <= options.max_depth|default(null)) -%}
+    {%- set classes = ['nav-item'] -%}
+    {%- if has_visible_children -%}{%- set classes = classes|merge(['dropdown']) -%}{%- endif -%}
+
+    <li class="{{ classes|join(' ') }}">
+        {{- block('link') -}}
+        {%- if has_visible_children -%}
+            {{- block('children') -}}
+        {%- endif -%}
+    </li>
+{%- endblock -%}
+
+{%- block link -%}
+    {%- set url = danilovl_menu_builder_url(item, locale) -%}
+    {%- set target = danilovl_menu_builder_target(item) -%}
+    {%- set link_classes = ['nav-link'] -%}
+    {%- if is_active -%}{%- set link_classes = link_classes|merge(['active']) -%}{%- endif -%}
+    {%- if has_visible_children -%}{%- set link_classes = link_classes|merge(['dropdown-toggle']) -%}{%- endif -%}
+
+    <a
+            class="{{ link_classes|join(' ') }}"
+            href="{{ url }}"
+            {%- if has_visible_children %} role="button" data-bs-toggle="dropdown" aria-expanded="false"{% endif -%}
+            {%- if target %} target="{{ target }}"{% endif -%}
+    >{{- block('link_inner') -}}</a>
+{%- endblock -%}
+
+{%- block children -%}
+    {%- set child_items = item.children -%}
+    {%- set parent_depth = depth -%}
+    <ul class="dropdown-menu">
+        {%- with {
+            items: child_items,
+            options: options,
+            locale: locale,
+            current_route: current_route,
+            depth: parent_depth + 1,
+        } only -%}
+            {%- for item in items -%}
+                {%- set is_active = danilovl_menu_builder_is_active(item, current_route) -%}
+                {%- set url = danilovl_menu_builder_url(item, locale) -%}
+                {%- set target = danilovl_menu_builder_target(item) -%}
+                <li>
+                    <a class="dropdown-item{% if is_active %} active{% endif %}"
+                       href="{{ url }}"{% if target %} target="{{ target }}"{% endif %}>
+                        {%- if item.icon -%}<i class="{{ item.icon }}"></i> {%- endif -%}
+                        {{ danilovl_menu_builder_label(item, locale) }}
+                    </a>
+                </li>
+            {%- endfor -%}
+        {%- endwith -%}
+    </ul>
+{%- endblock -%}
