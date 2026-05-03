@@ -345,6 +345,26 @@ class RedisStorage implements StorageInterface
         $this->refreshIndex($menuName, $tree);
     }
 
+    public function getMaxPosition(string $menuName, int|string|null $parentId): int
+    {
+        $tree = $this->getTree($menuName, false);
+        if ($parentId === null) {
+            $list = $tree;
+        } else {
+            $parent = $this->findInTree($tree, $parentId);
+            $list = $parent ? iterator_to_array($parent->getChildren()) : [];
+        }
+
+        $max = -1;
+        foreach ($list as $item) {
+            if ($item->getPosition() > $max) {
+                $max = $item->getPosition();
+            }
+        }
+
+        return $max;
+    }
+
     /**
      * @param array<int, DetachedMenuItem> $list
      * @return array<int, DetachedMenuItem>

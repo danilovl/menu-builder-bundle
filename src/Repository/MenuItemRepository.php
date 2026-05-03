@@ -217,4 +217,24 @@ class MenuItemRepository extends ServiceEntityRepository
 
         $qb->getQuery()->execute();
     }
+
+    public function getMaxPosition(string $menuName, ?MenuItem $parent): int
+    {
+        $qb = $this->createQueryBuilder('i')
+            ->select('MAX(i.position)')
+            ->where('i.menuName = :name')
+            ->andWhere('i.deletedAt IS NULL')
+            ->setParameter('name', $menuName);
+
+        if ($parent === null) {
+            $qb->andWhere('i.parent IS NULL');
+        } else {
+            $qb->andWhere('i.parent = :parent')
+                ->setParameter('parent', $parent);
+        }
+
+        $result = $qb->getQuery()->getSingleScalarResult();
+
+        return $result === null ? -1 : (int) $result;
+    }
 }

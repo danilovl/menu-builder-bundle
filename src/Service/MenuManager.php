@@ -76,8 +76,14 @@ readonly class MenuManager
         $this->hydrate($item, $data);
 
         $parentId = $data['parentId'] ?? null;
-        if (((is_string($parentId) && $parentId !== '') || is_int($parentId))) {
-            $parent = $this->storage->findById($parentId);
+        $normalizedParentId = ((is_string($parentId) && $parentId !== '') || is_int($parentId)) ? $parentId : null;
+
+        if (!isset($data['position'])) {
+            $item->setPosition($this->storage->getMaxPosition($menuName, $normalizedParentId) + 1);
+        }
+
+        if ($normalizedParentId !== null) {
+            $parent = $this->storage->findById($normalizedParentId);
             if ($parent === null) {
                 $message = sprintf(
                     'Parent menu item "%s" not found in menu "%s".',

@@ -29,7 +29,7 @@ readonly class CreateMenuItemRequest
         #[Assert\Length(max: 1_024)]
         public ?string $iconImage = null,
         public array $attributes = [],
-        public int $position = 0,
+        public ?int $position = null,
         public bool $active = true,
         public bool $isDisplayed = true,
         public array $requiredRoles = [],

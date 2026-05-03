@@ -281,6 +281,26 @@ final class MockStorage implements StorageInterface
         }
     }
 
+    public function getMaxPosition(string $menuName, int|string|null $parentId): int
+    {
+        $tree = $this->trees[$menuName] ?? [];
+        if ($parentId === null) {
+            $list = $tree;
+        } else {
+            $parent = $this->findById($parentId);
+            $list = $parent ? iterator_to_array($parent->getChildren()) : [];
+        }
+
+        $max = -1;
+        foreach ($list as $item) {
+            if ($item->getPosition() > $max) {
+                $max = $item->getPosition();
+            }
+        }
+
+        return $max;
+    }
+
     private function renumberRoots(string $menuName): void
     {
         if (!isset($this->trees[$menuName])) {

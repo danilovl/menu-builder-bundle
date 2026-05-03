@@ -18,7 +18,7 @@ export interface MenuItem {
   icon: string | null
   iconImage: string | null
   attributes: Record<string, unknown>
-  position: number
+  position?: number
   active: boolean
   isDisplayed: boolean
   requiredRoles: string[]

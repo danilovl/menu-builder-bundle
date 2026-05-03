@@ -40,7 +40,6 @@ function emptyItem(menuName: string, parentId: string | null): MenuItem {
     icon: null,
     iconImage: null,
     attributes: {},
-    position: 0,
     active: true,
     isDisplayed: true,
     requiredRoles: [],

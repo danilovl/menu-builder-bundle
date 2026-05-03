@@ -201,4 +201,11 @@ class DoctrineStorage implements StorageInterface
 
         $this->repository->reorder($item, $newParent, $newPosition);
     }
+
+    public function getMaxPosition(string $menuName, int|string|null $parentId): int
+    {
+        $parent = ($parentId !== null && $parentId !== '') ? $this->repository->find($parentId) : null;
+
+        return $this->repository->getMaxPosition($menuName, $parent);
+    }
 }
