@@ -46,6 +46,8 @@ interface StorageInterface
 
     public function getMaxPosition(string $menuName, int|string|null $parentId): int;
 
+    public function renumber(string $menuName, ?MenuItemInterface $parent): void;
+
     public function shiftSiblings(
         string $menuName,
         ?MenuItemInterface $parent,

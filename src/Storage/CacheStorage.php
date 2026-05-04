@@ -406,6 +406,32 @@ class CacheStorage implements StorageInterface
         return $max;
     }
 
+    public function renumber(string $menuName, ?MenuItemInterface $parent): void
+    {
+        $tree = $this->loadTree($menuName);
+        if ($parent === null) {
+            $list = $tree;
+        } else {
+            $id = $parent->getId();
+            if ($id === null) {
+                return;
+            }
+
+            $parentNode = $this->findInTree($tree, $id);
+            if ($parentNode === null) {
+                return;
+            }
+            $list = iterator_to_array($parentNode->getChildren());
+        }
+
+        foreach ($list as $i => $node) {
+            $node->setPosition($i);
+        }
+
+        $this->saveTree($menuName, $tree);
+        $this->refreshIndex($menuName, $tree);
+    }
+
     public function shiftSiblings(
         string $menuName,
         ?MenuItemInterface $parent,

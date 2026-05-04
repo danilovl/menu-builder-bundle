@@ -78,15 +78,7 @@ class DoctrineStorage implements StorageInterface
         }
 
         $this->em->flush();
-
-        $this->shiftSiblings(
-            $item->getMenuName(),
-            $item->getParent(),
-            null,
-            $item->getPosition() + 1,
-            null,
-            -1
-        );
+        $this->renumber($item->getMenuName(), $item->getParent());
     }
 
     public function restore(MenuItemInterface $item): void
@@ -216,6 +208,15 @@ class DoctrineStorage implements StorageInterface
         $parent = ($parentId !== null && $parentId !== '') ? $this->repository->find($parentId) : null;
 
         return $this->repository->getMaxPosition($menuName, $parent);
+    }
+
+    public function renumber(string $menuName, ?MenuItemInterface $parent): void
+    {
+        if ($parent !== null && !$parent instanceof MenuItem) {
+            return;
+        }
+
+        $this->repository->renumber($menuName, $parent);
     }
 
     public function shiftSiblings(

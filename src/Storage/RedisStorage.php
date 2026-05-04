@@ -165,6 +165,7 @@ class RedisStorage implements StorageInterface
         $tree = $this->removeFromTree($tree, $item->getId());
         $this->persistTree($menuName, $tree);
         $this->refreshIndex($menuName, $tree);
+        $this->renumber($menuName, $item->getParent());
     }
 
     public function restore(MenuItemInterface $item): void
@@ -363,6 +364,40 @@ class RedisStorage implements StorageInterface
         }
 
         return $max;
+    }
+
+    public function renumber(string $menuName, ?MenuItemInterface $parent): void
+    {
+        $tree = $this->getTree($menuName, false);
+        if ($parent === null) {
+            $list = &$tree;
+        } else {
+            $parentId = $parent->getId();
+            if ($parentId === null) {
+                return;
+            }
+            $parentNode = $this->findInTree($tree, $parentId);
+            if ($parentNode === null) {
+                return;
+            }
+            $iterable = $parentNode->getChildren();
+            $children = iterator_to_array($iterable);
+            foreach ($children as $child) {
+                $parentNode->removeChild($child);
+            }
+            foreach ($children as $i => $child) {
+                $child->setPosition($i);
+                $parentNode->addChild($child);
+            }
+            $this->persistTree($menuName, $tree);
+
+            return;
+        }
+
+        foreach ($list as $i => $node) {
+            $node->setPosition($i);
+        }
+        $this->persistTree($menuName, $tree);
     }
 
     public function shiftSiblings(

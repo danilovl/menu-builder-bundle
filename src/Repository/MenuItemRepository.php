@@ -3,6 +3,7 @@
 namespace Danilovl\MenuBuilderBundle\Repository;
 
 use Danilovl\MenuBuilderBundle\Entity\MenuItem;
+use Danilovl\MenuBuilderBundle\Model\MenuItemInterface;
 use Doctrine\Common\Collections\Order;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
@@ -127,7 +128,7 @@ class MenuItemRepository extends ServiceEntityRepository
     /**
      * @return array<int, MenuItem>
      */
-    public function findByParent(string $menuName, ?MenuItem $parent): array
+    public function findByParent(string $menuName, ?MenuItemInterface $parent): array
     {
         $qb = $this->createQueryBuilder('i')
             ->where('i.menuName = :name')
@@ -179,8 +180,17 @@ class MenuItemRepository extends ServiceEntityRepository
 
         $em->flush();
     }
+    
+    public function renumber(string $menuName, ?MenuItemInterface $parent): void
+    {
+        $siblings = $this->findByParent($menuName, $parent);
+        foreach ($siblings as $pos => $sibling) {
+            $sibling->setPosition($pos);
+        }
+        $this->getEntityManager()->flush();
+    }
 
-    private function isSameParent(?MenuItem $a, ?MenuItem $b): bool
+    private function isSameParent(?MenuItemInterface $a, ?MenuItemInterface $b): bool
     {
         if ($a === null && $b === null) {
             return true;
@@ -194,7 +204,7 @@ class MenuItemRepository extends ServiceEntityRepository
 
     public function shiftSiblings(
         string $menuName,
-        ?MenuItem $parent,
+        ?MenuItemInterface $parent,
         int|string|null $excludeId,
         int $rangeFrom,
         ?int $rangeTo,
