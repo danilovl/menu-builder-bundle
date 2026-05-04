@@ -365,6 +365,15 @@ class RedisStorage implements StorageInterface
         return $max;
     }
 
+    public function shiftSiblings(
+        string $menuName,
+        ?MenuItemInterface $parent,
+        int|string|null $excludeId,
+        int $rangeFrom,
+        ?int $rangeTo,
+        int $delta,
+    ): void {}
+
     /**
      * @param array<int, DetachedMenuItem> $list
      * @return array<int, DetachedMenuItem>

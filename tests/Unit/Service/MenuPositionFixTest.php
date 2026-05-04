@@ -94,4 +94,71 @@ final class MenuPositionFixTest extends TestCase
         $this->assertSame(10, $item1->getPosition());
         $this->assertSame(11, $item2->getPosition());
     }
+
+    public function testReorderMaintainsSequentialPositions(): void
+    {
+        $manager = $this->makeManager();
+
+        $items = [];
+        for ($i = 0; $i < 5; $i++) {
+            $items[] = $manager->create(['menuName' => 'main', 'label' => 'Item ' . $i]);
+        }
+
+        // Перемещаем элемент с позиции 4 на позицию 1
+        $id = $items[4]->getId();
+        $this->assertNotNull($id);
+        $manager->move($id, null, 1);
+
+        $rootItems = $manager->getTree('main');
+        $positions = array_map(static fn ($item) => $item->getPosition(), $rootItems);
+
+        $this->assertSame([0, 1, 2, 3, 4], $positions);
+        $this->assertSame('Item 0', $rootItems[0]->getLabel());
+        $this->assertSame('Item 4', $rootItems[1]->getLabel());
+        $this->assertSame('Item 1', $rootItems[2]->getLabel());
+
+        // Перемещаем между родителями
+        $root2 = $manager->create(['menuName' => 'main', 'label' => 'Root 2']);
+        $id0 = $items[0]->getId();
+        $root2Id = $root2->getId();
+        $this->assertNotNull($id0);
+        $this->assertNotNull($root2Id);
+
+        $manager->move($id0, $root2Id, 0);
+
+        $rootItems = $manager->getTree('main');
+        $this->assertCount(5, $rootItems); // items[1,2,3,4] + root2
+        $rootPositions = array_map(static fn ($item) => $item->getPosition(), $rootItems);
+        $this->assertSame([0, 1, 2, 3, 4], $rootPositions);
+
+        $children = iterator_to_array($root2->getChildren());
+        $this->assertCount(1, $children);
+        $this->assertSame(0, $children[0]->getPosition());
+        $this->assertSame('Item 0', $children[0]->getLabel());
+    }
+
+    public function testDeleteMaintainsSequentialPositions(): void
+    {
+        $manager = $this->makeManager();
+
+        $items = [];
+        for ($i = 0; $i < 5; $i++) {
+            $items[] = $manager->create(['menuName' => 'main', 'label' => 'Item ' . $i]);
+        }
+
+        // Удаляем элемент с позиции 2 (Item 2)
+        $id2 = $items[2]->getId();
+        $this->assertNotNull($id2);
+        $manager->delete($id2);
+
+        $rootItems = $manager->getAllItems('main'); // Используем getAllItems, так как getTree может фильтровать
+        $positions = array_map(static fn ($item) => $item->getPosition(), $rootItems);
+
+        // Должно быть [0, 1, 2, 3] вместо [0, 1, 3, 4]
+        $this->assertSame([0, 1, 2, 3], $positions);
+        $this->assertSame('Item 0', $rootItems[0]->getLabel());
+        $this->assertSame('Item 1', $rootItems[1]->getLabel());
+        $this->assertSame('Item 3', $rootItems[2]->getLabel());
+        $this->assertSame('Item 4', $rootItems[3]->getLabel());
+    }
 }

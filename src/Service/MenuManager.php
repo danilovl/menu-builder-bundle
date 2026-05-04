@@ -78,10 +78,6 @@ readonly class MenuManager
         $parentId = $data['parentId'] ?? null;
         $normalizedParentId = ((is_string($parentId) && $parentId !== '') || is_int($parentId)) ? $parentId : null;
 
-        if (!isset($data['position'])) {
-            $item->setPosition($this->storage->getMaxPosition($menuName, $normalizedParentId) + 1);
-        }
-
         if ($normalizedParentId !== null) {
             $parent = $this->storage->findById($normalizedParentId);
             if ($parent === null) {
@@ -104,6 +100,23 @@ readonly class MenuManager
                 throw new DomainException($message);
             }
 
+            $item->setParent($parent);
+        }
+
+        if (!isset($data['position'])) {
+            $item->setPosition($this->storage->getMaxPosition($menuName, $normalizedParentId) + 1);
+        } else {
+            $this->storage->shiftSiblings(
+                $menuName,
+                $item->getParent(),
+                null,
+                $item->getPosition(),
+                null,
+                1
+            );
+        }
+
+        if (isset($parent)) {
             $parent->addChild($item);
         }
 

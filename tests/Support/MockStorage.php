@@ -124,6 +124,13 @@ final class MockStorage implements StorageInterface
             return $node->getId() !== $itemId;
         });
         $this->trees[$name] = array_values($filtered);
+
+        $parent = $item->getParent();
+        if ($parent !== null) {
+            $parent->removeChild($item);
+        }
+
+        $this->renumber($name, $parent);
     }
 
     public function restore(MenuItemInterface $item): void
@@ -221,6 +228,32 @@ final class MockStorage implements StorageInterface
 
     }
 
+    public function shiftSiblings(
+        string $menuName,
+        ?MenuItemInterface $parent,
+        int|string|null $excludeId,
+        int $rangeFrom,
+        ?int $rangeTo,
+        int $delta,
+    ): void {
+        if ($parent === null) {
+            $list = $this->trees[$menuName] ?? [];
+        } else {
+            $list = iterator_to_array($parent->getChildren());
+        }
+
+        foreach ($list as $item) {
+            if ($excludeId !== null && (string) $item->getId() === (string) $excludeId) {
+                continue;
+            }
+
+            $pos = $item->getPosition();
+            if ($pos >= $rangeFrom && ($rangeTo === null || $pos <= $rangeTo)) {
+                $item->setPosition($pos + $delta);
+            }
+        }
+    }
+
     public function move(MenuItemInterface $item, ?MenuItemInterface $newParent, int $newPosition): void
     {
         $currentParent = $item->getParent();
@@ -299,6 +332,15 @@ final class MockStorage implements StorageInterface
         }
 
         return $max;
+    }
+
+    public function renumber(string $menuName, ?MenuItemInterface $parent): void
+    {
+        if ($parent === null) {
+            $this->renumberRoots($menuName);
+        } else {
+            $this->renumberChildren($parent);
+        }
     }
 
     private function renumberRoots(string $menuName): void

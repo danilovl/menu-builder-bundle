@@ -45,4 +45,13 @@ interface StorageInterface
     public function getDeletedItems(string $menuName): array;
 
     public function getMaxPosition(string $menuName, int|string|null $parentId): int;
+
+    public function shiftSiblings(
+        string $menuName,
+        ?MenuItemInterface $parent,
+        int|string|null $excludeId,
+        int $rangeFrom,
+        ?int $rangeTo,
+        int $delta,
+    ): void;
 }

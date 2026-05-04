@@ -124,44 +124,59 @@ class MenuItemRepository extends ServiceEntityRepository
         return array_column($rows, 'menuName');
     }
 
+    /**
+     * @return array<int, MenuItem>
+     */
+    public function findByParent(string $menuName, ?MenuItem $parent): array
+    {
+        $qb = $this->createQueryBuilder('i')
+            ->where('i.menuName = :name')
+            ->andWhere('i.deletedAt IS NULL')
+            ->setParameter('name', $menuName)
+            ->orderBy('i.position', Order::Ascending->value);
+
+        if ($parent === null) {
+            $qb->andWhere('i.parent IS NULL');
+        } else {
+            $qb->andWhere('i.parent = :parent')
+                ->setParameter('parent', $parent);
+        }
+
+        return self::filterMenuItems($qb->getQuery()->getResult());
+    }
+
     public function reorder(MenuItem $item, ?MenuItem $newParent, int $newPosition): void
     {
         $em = $this->getEntityManager();
-        $rawOldParent = $item->getParent();
-
-        if ($rawOldParent instanceof MenuItem) {
-            $oldParent = $rawOldParent;
-        } else {
-            $oldParent = null;
-        }
-
-        $oldPosition = $item->getPosition();
-        $itemId = (string) $item->getId();
+        $oldParent = $item->getParent();
         $menuName = $item->getMenuName();
-        $sameParent = $this->isSameParent($oldParent, $newParent);
 
-        if ($sameParent && $oldPosition === $newPosition) {
-            $em->persist($item);
-            $em->flush();
-
+        if ($this->isSameParent($oldParent, $newParent) && $item->getPosition() === $newPosition) {
             return;
         }
 
-        if (!$sameParent) {
-            $oldShiftFrom = $oldPosition + 1;
-            $this->shiftSiblings($menuName, $oldParent, $itemId, $oldShiftFrom, null, -1);
-            $this->shiftSiblings($menuName, $newParent, $itemId, $newPosition, null, 1);
-        } elseif ($oldPosition < $newPosition) {
-            $shiftFrom = $oldPosition + 1;
-            $this->shiftSiblings($menuName, $newParent, $itemId, $shiftFrom, $newPosition, -1);
-        } else {
-            $shiftTo = $oldPosition - 1;
-            $this->shiftSiblings($menuName, $newParent, $itemId, $newPosition, $shiftTo, 1);
+        if (!$this->isSameParent($oldParent, $newParent)) {
+            $oldSiblings = $this->findByParent($menuName, $oldParent);
+            $pos = 0;
+            foreach ($oldSiblings as $sibling) {
+                if ($sibling->getId() === $item->getId()) {
+                    continue;
+                }
+                $sibling->setPosition($pos++);
+            }
         }
 
         $item->setParent($newParent);
-        $item->setPosition($newPosition);
-        $em->persist($item);
+        $newSiblings = $this->findByParent($menuName, $newParent);
+        $newSiblings = array_filter($newSiblings, static fn (MenuItem $i): bool => $i->getId() !== $item->getId());
+        $newSiblings = array_values($newSiblings);
+
+        array_splice($newSiblings, $newPosition, 0, [$item]);
+
+        foreach ($newSiblings as $pos => $sibling) {
+            $sibling->setPosition($pos);
+        }
+
         $em->flush();
     }
 
@@ -177,14 +192,18 @@ class MenuItemRepository extends ServiceEntityRepository
         return $a->getId() === $b->getId();
     }
 
-    private function shiftSiblings(
+    public function shiftSiblings(
         string $menuName,
         ?MenuItem $parent,
-        string $excludeId,
+        int|string|null $excludeId,
         int $rangeFrom,
         ?int $rangeTo,
         int $delta,
     ): void {
+        if ($delta === 0) {
+            return;
+        }
+
         if ($delta >= 0) {
             $sign = '+';
         } else {
@@ -197,11 +216,15 @@ class MenuItemRepository extends ServiceEntityRepository
             ->update()
             ->set('i.position', $expression)
             ->where('i.menuName = :name')
-            ->andWhere('i.id != :id')
+            ->andWhere('i.deletedAt IS NULL')
             ->andWhere('i.position >= :from')
             ->setParameter('name', $menuName)
-            ->setParameter('id', $excludeId)
             ->setParameter('from', $rangeFrom);
+
+        if ($excludeId !== null) {
+            $qb->andWhere('i.id != :id')
+                ->setParameter('id', $excludeId);
+        }
 
         if ($rangeTo !== null) {
             $qb->andWhere('i.position <= :to')

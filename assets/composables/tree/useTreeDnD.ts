@@ -206,19 +206,29 @@ export function useTreeDnD(options: UseTreeDnDOptions) {
 
   function onSlotDrop(_evt: DragEvent, element: MenuItem, idx: number, mode: 'before' | 'after'): void {
     const dragged = draggedRef?.value
-    if (!dragged || !element.id || dragged.itemId === element.id) {
+    if (!dragged || !element.id || String(dragged.itemId) === String(element.id)) {
       return
     }
+    const draggedItem = getDraggedItem()
+    const draggedPos = draggedItem?.position ?? getDraggedIdx()
+    const basePos = element.position ?? idx
+    const targetPos = mode === 'before' ? basePos : basePos + 1
+    const isSameParent = String(dragged.parentId) === String(options.parentId())
+
+    const finalPosition = (isSameParent && draggedPos !== -1 && targetPos > draggedPos)
+      ? targetPos - 1
+      : targetPos
+
     options.emitMove({
       id: dragged.itemId,
       parentId: options.parentId(),
-      position: mode === 'before' ? idx : idx + 1,
+      position: finalPosition,
     })
   }
 
   function onRowDrop(evt: DragEvent, element: MenuItem, idx: number): void {
     const dragged = draggedRef?.value
-    if (!dragged || !element.id || dragged.itemId === element.id) {
+    if (!dragged || !element.id || String(dragged.itemId) === String(element.id)) {
       return
     }
 
@@ -239,11 +249,20 @@ export function useTreeDnD(options: UseTreeDnDOptions) {
       return
     }
 
-    const targetPos = mode === 'before' ? idx : idx + 1
+    const draggedItem = getDraggedItem()
+    const draggedPos = draggedItem?.position ?? getDraggedIdx()
+    const basePos = element.position ?? idx
+    const targetPos = mode === 'before' ? basePos : basePos + 1
+    const isSameParent = String(dragged.parentId) === String(options.parentId())
+
+    const finalPosition = (isSameParent && draggedPos !== -1 && targetPos > draggedPos)
+      ? targetPos - 1
+      : targetPos
+
     options.emitMove({
       id: dragged.itemId,
       parentId: options.parentId(),
-      position: targetPos,
+      position: finalPosition,
     })
   }
 
@@ -260,7 +279,18 @@ export function useTreeDnD(options: UseTreeDnDOptions) {
     }
 
     return options.items().findIndex((i: MenuItem) => {
-      return i.id === dragged.itemId
+      return String(i.id) === String(dragged.itemId)
+    })
+  }
+
+  function getDraggedItem(): MenuItem | undefined {
+    const dragged = draggedRef?.value
+    if (!dragged) {
+      return undefined
+    }
+
+    return options.items().find((i: MenuItem) => {
+      return String(i.id) === String(dragged.itemId)
     })
   }
 
