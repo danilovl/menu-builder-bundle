@@ -215,9 +215,7 @@ export function useTreeDnD(options: UseTreeDnDOptions) {
     const targetPos = mode === 'before' ? basePos : basePos + 1
     const isSameParent = String(dragged.parentId) === String(options.parentId())
 
-    const finalPosition = (isSameParent && draggedPos !== -1 && targetPos > draggedPos)
-      ? targetPos - 1
-      : targetPos
+    const finalPosition = isSameParent && draggedPos !== -1 && targetPos > draggedPos ? targetPos - 1 : targetPos
 
     options.emitMove({
       id: dragged.itemId,
@@ -255,9 +253,7 @@ export function useTreeDnD(options: UseTreeDnDOptions) {
     const targetPos = mode === 'before' ? basePos : basePos + 1
     const isSameParent = String(dragged.parentId) === String(options.parentId())
 
-    const finalPosition = (isSameParent && draggedPos !== -1 && targetPos > draggedPos)
-      ? targetPos - 1
-      : targetPos
+    const finalPosition = isSameParent && draggedPos !== -1 && targetPos > draggedPos ? targetPos - 1 : targetPos
 
     options.emitMove({
       id: dragged.itemId,
