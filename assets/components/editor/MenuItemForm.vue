@@ -25,6 +25,7 @@
         :form="form"
         :route-params-error="routeParamsError"
         :attributes-error="attributesError"
+        :url-error="urlError"
         :show-attrs="showAttrs"
         :route-params-json="routeParamsJson"
         :attributes-json="attributesJson"
@@ -169,6 +170,7 @@ const usersList = ref<string[]>([...(props.modelValue.allowedUsers || [])])
 const dependentRoutesList = ref<string[]>([...(props.modelValue.dependentActiveRoutes || [])])
 const routeParamsError = ref<string | null>(null)
 const attributesError = ref<string | null>(null)
+const urlError = ref<string | null>(null)
 const showAttrs = ref(false)
 
 watch(
@@ -184,6 +186,7 @@ watch(
     dependentRoutesList.value = [...(v.dependentActiveRoutes || [])]
     activeTab.value = 'content'
     showAttrs.value = false
+    urlError.value = null
   },
   { deep: true },
 )
@@ -262,7 +265,17 @@ function onSubmit(): void {
   routeParamsError.value = rpErr
   attributesError.value = atErr
 
-  if (rpErr || atErr) {
+  urlError.value = null
+  const type = form.value.type
+  if (['link', 'external', 'mega'].includes(type)) {
+    const hasUri = form.value.uri && form.value.uri.trim() !== ''
+    const hasRoute = form.value.route && form.value.route.trim() !== ''
+    if (!hasUri && !hasRoute) {
+      urlError.value = t('form.error.urlRequired')
+    }
+  }
+
+  if (rpErr || atErr || urlError.value) {
     activeTab.value = 'content'
     if (atErr) {
       showAttrs.value = true

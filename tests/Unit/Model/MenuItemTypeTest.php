@@ -20,6 +20,7 @@ final class MenuItemTypeTest extends TestCase
     public static function provideIsValidAcceptsKnownValuesCases(): Generator
     {
         yield 'link' => ['link'];
+        yield 'none' => ['none'];
         yield 'divider' => ['divider'];
         yield 'heading' => ['heading'];
         yield 'external' => ['external'];

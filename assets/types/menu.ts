@@ -1,6 +1,6 @@
 export type MenuVisibility = 'always' | 'authenticated' | 'anonymous'
 
-export type MenuItemType = 'link' | 'divider' | 'heading' | 'external' | 'mega'
+export type MenuItemType = 'link' | 'none' | 'divider' | 'heading' | 'external' | 'mega'
 
 export interface MenuTranslation {
   label?: string

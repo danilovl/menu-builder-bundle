@@ -17,6 +17,18 @@
         <span class="mb-form__field-hint">{{ t('form.parentHint') }}</span>
       </label>
       <label class="mb-form__field">
+        <span class="mb-form__field-label">{{ t('form.type') }}</span>
+        <select v-model="form.type">
+          <option value="link">{{ t('form.type.link') }}</option>
+          <option value="none">{{ t('form.type.none') }}</option>
+          <option value="divider">{{ t('form.type.divider') }}</option>
+          <option value="heading">{{ t('form.type.heading') }}</option>
+          <option value="external">{{ t('form.type.external') }}</option>
+          <option value="mega">{{ t('form.type.mega') }}</option>
+        </select>
+      </label>
+
+      <label class="mb-form__field">
         <span class="mb-form__field-label"> {{ t('form.label') }}<i class="mb-form__field-required">*</i> </span>
         <input
           v-model="form.label"
@@ -75,6 +87,7 @@
         <span class="mb-form__field-label">{{ t('form.route') }}</span>
         <RouteAutocomplete :model-value="form.route ?? ''" @update:model-value="onRouteUpdate" placeholder="app_home" />
       </div>
+      <span v-if="urlError" class="mb-form__field-error">{{ urlError }}</span>
       <label class="mb-form__field">
         <span class="mb-form__field-label">{{ t('form.routeParams') }}</span>
         <textarea
@@ -158,6 +171,7 @@ const props = defineProps<{
   form: MenuItem
   routeParamsError: string | null
   attributesError: string | null
+  urlError: string | null
   showAttrs: boolean
   routeParamsJson: string
   attributesJson: string

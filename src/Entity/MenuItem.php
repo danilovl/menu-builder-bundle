@@ -681,7 +681,10 @@ class MenuItem implements MenuItemInterface
     #[Assert\Callback]
     public function validateLink(ExecutionContextInterface $context): void
     {
-        if ($this->type === MenuItemType::DIVIDER || $this->type === MenuItemType::HEADING) {
+        if ($this->type === MenuItemType::DIVIDER ||
+            $this->type === MenuItemType::HEADING ||
+            $this->type === MenuItemType::NONE
+        ) {
             return;
         }
 

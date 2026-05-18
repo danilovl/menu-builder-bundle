@@ -5,6 +5,7 @@ namespace Danilovl\MenuBuilderBundle\Model;
 enum MenuItemType: string
 {
     case LINK = 'link';
+    case NONE = 'none';
     case DIVIDER = 'divider';
     case HEADING = 'heading';
     case EXTERNAL = 'external';
