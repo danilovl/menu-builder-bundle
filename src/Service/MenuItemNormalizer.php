@@ -4,6 +4,7 @@ namespace Danilovl\MenuBuilderBundle\Service;
 
 use DateTimeInterface;
 use Danilovl\MenuBuilderBundle\Model\MenuItemInterface;
+use Danilovl\MenuBuilderBundle\Security\UriSafety;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 readonly class MenuItemNormalizer
@@ -14,11 +15,11 @@ readonly class MenuItemNormalizer
      * @param array<int, MenuItemInterface> $tree
      * @return array<int, array<string, mixed>>
      */
-    public function normalizeTree(array $tree, ?string $previewLocale = null): array
+    public function normalizeTree(array $tree, ?string $previewLocale = null, bool $sanitizeUris = false): array
     {
         $result = [];
         foreach ($tree as $item) {
-            $result[] = $this->normalize($item, $previewLocale);
+            $result[] = $this->normalize($item, $previewLocale, $sanitizeUris);
         }
 
         return $result;
@@ -57,11 +58,18 @@ readonly class MenuItemNormalizer
      *     children: array<int, array<string, mixed>>,
      * }
      */
-    public function normalize(MenuItemInterface $item, ?string $previewLocale = null): array
+    public function normalize(MenuItemInterface $item, ?string $previewLocale = null, bool $sanitizeUris = false): array
     {
         $children = [];
         foreach ($item->getChildren() as $child) {
-            $children[] = $this->normalize($child, $previewLocale);
+            $children[] = $this->normalize($child, $previewLocale, $sanitizeUris);
+        }
+
+        $uri = $item->getUri();
+        $translations = $item->getTranslations();
+        if ($sanitizeUris) {
+            $uri = self::sanitizeUri($uri);
+            $translations = self::sanitizeTranslations($translations);
         }
 
         $resolvedLabel = $this->resolveLabel($item, $previewLocale);
@@ -74,7 +82,7 @@ readonly class MenuItemNormalizer
             'menuName' => $item->getMenuName(),
             'label' => $item->getLabel(),
             'resolvedLabel' => $resolvedLabel,
-            'uri' => $item->getUri(),
+            'uri' => $uri,
             'route' => $item->getRoute(),
             'routeParams' => $item->getRouteParams(),
             'icon' => $item->getIcon(),
@@ -87,7 +95,7 @@ readonly class MenuItemNormalizer
             'allowedUsers' => $item->getAllowedUsers(),
             'target' => $item->getTarget(),
             'visibility' => $item->getVisibility(),
-            'translations' => $item->getTranslations(),
+            'translations' => $translations,
             'dependentActiveRoutes' => $item->getDependentActiveRoutes(),
             'labelTranslated' => $item->isLabelTranslated(),
             'translationDomain' => $item->getTranslationDomain(),
@@ -100,6 +108,31 @@ readonly class MenuItemNormalizer
             'hasChildren' => $item->hasChildren(),
             'children' => $children,
         ];
+    }
+
+    private static function sanitizeUri(?string $uri): ?string
+    {
+        if ($uri === null || $uri === '') {
+            return $uri;
+        }
+
+        return UriSafety::isSafe($uri) ? $uri : null;
+    }
+
+    /**
+     * @param array<string, array{label?: string, uri?: string}> $translations
+     * @return array<string, array{label?: string, uri?: string}>
+     */
+    private static function sanitizeTranslations(array $translations): array
+    {
+        foreach ($translations as $locale => $translation) {
+            if (isset($translation['uri']) && !UriSafety::isSafe($translation['uri'])) {
+                unset($translation['uri']);
+                $translations[$locale] = $translation;
+            }
+        }
+
+        return $translations;
     }
 
     private function resolveLabel(MenuItemInterface $item, ?string $previewLocale): string

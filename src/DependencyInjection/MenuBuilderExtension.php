@@ -2,7 +2,9 @@
 
 namespace Danilovl\MenuBuilderBundle\DependencyInjection;
 
+use Danilovl\MenuBuilderBundle\Security\MenuItemVoter;
 use InvalidArgumentException;
+use Symfony\Bundle\SecurityBundle\SecurityBundle;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\{ContainerBuilder, Definition};
 use Symfony\Component\DependencyInjection\Loader\YamlFileLoader;
@@ -38,6 +40,10 @@ class MenuBuilderExtension extends Extension
         $loader = new YamlFileLoader($container, $fileLocator);
         $loader->load('services.yaml');
 
+        if (!self::isSecurityBundleEnabled($container) && $container->hasDefinition(MenuItemVoter::class)) {
+            $container->removeDefinition(MenuItemVoter::class);
+        }
+
         $storageServiceId = match ($config['storage']['driver']) {
             'doctrine' => 'Danilovl\MenuBuilderBundle\Storage\DoctrineStorage',
             'cache' => 'Danilovl\MenuBuilderBundle\Storage\CacheStorage',
@@ -48,6 +54,17 @@ class MenuBuilderExtension extends Extension
         $container
             ->setAlias('Danilovl\MenuBuilderBundle\Storage\StorageInterface', $storageServiceId)
             ->setPublic(false);
+    }
+
+    private static function isSecurityBundleEnabled(ContainerBuilder $container): bool
+    {
+        if (!$container->hasParameter('kernel.bundles')) {
+            return false;
+        }
+
+        $bundles = $container->getParameter('kernel.bundles');
+
+        return is_array($bundles) && in_array(SecurityBundle::class, $bundles, true);
     }
 
     public function getAlias(): string

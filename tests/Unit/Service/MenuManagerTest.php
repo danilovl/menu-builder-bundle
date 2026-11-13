@@ -9,6 +9,7 @@ use Danilovl\MenuBuilderBundle\DependencyInjection\MenuBuilderConfig;
 use Danilovl\MenuBuilderBundle\Exception\MenuItemNotFoundException;
 use Danilovl\MenuBuilderBundle\Security\MenuPermissionChecker;
 use Danilovl\MenuBuilderBundle\Tests\Support\MockStorage;
+use DomainException;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\EventDispatcher\EventDispatcher;
 use Symfony\Component\Routing\{
@@ -16,6 +17,7 @@ use Symfony\Component\Routing\{
     RouterInterface
 };
 use Danilovl\MenuBuilderBundle\Service\{
+    MenuImporter,
     MenuManager,
     RouteExistenceChecker
 };
@@ -128,5 +130,105 @@ final class MenuManagerTest extends TestCase
 
         $this->expectException(MenuItemNotFoundException::class);
         $manager->find($itemId);
+    }
+
+    public function testCreateRejectsUnsafeUri(): void
+    {
+        [$manager, $storage] = $this->makeManager();
+
+        $data = ['menuName' => 'main', 'label' => 'XSS', 'uri' => "java\tscript:alert(1)"];
+
+        try {
+            $manager->create($data);
+            $this->fail('DomainException expected.');
+        } catch (DomainException $e) {
+            $message = $e->getMessage();
+            $this->assertStringContainsString('"javascript" is not allowed', $message);
+        }
+
+        $tree = $storage->getTree('main', false);
+
+        $this->assertSame([], $tree);
+    }
+
+    public function testCreateRejectsUnsafeTranslationUri(): void
+    {
+        [$manager] = $this->makeManager();
+
+        $data = [
+            'menuName' => 'main',
+            'label' => 'XSS',
+            'uri' => '/ok',
+            'translations' => ['cs' => ['uri' => 'data:text/html,x']],
+        ];
+
+        $this->expectException(DomainException::class);
+        $this->expectExceptionMessage('translations[cs].uri');
+
+        $manager->create($data);
+    }
+
+    public function testUpdateRejectsUnsafeUri(): void
+    {
+        [$manager] = $this->makeManager();
+        $createData = ['menuName' => 'main', 'label' => 'X', 'uri' => '/x'];
+        $updateData = ['uri' => 'javascript:alert(1)'];
+
+        $item = $manager->create($createData);
+        $itemId = $item->getId();
+        $this->assertNotNull($itemId);
+
+        $this->expectException(DomainException::class);
+
+        $manager->update($itemId, $updateData);
+    }
+
+    public function testImportRejectsUnsafeUriBeforePersisting(): void
+    {
+        [$manager, $storage] = $this->makeManager();
+        $importer = new MenuImporter($manager);
+
+        $payload = [
+            'menu' => 'main',
+            'items' => [
+                ['label' => 'XSS', 'uri' => 'javascript:alert(1)'],
+            ],
+        ];
+
+        try {
+            $importer->import($payload);
+            $this->fail('DomainException expected.');
+        } catch (DomainException $e) {
+            $message = $e->getMessage();
+            $this->assertStringContainsString('Imported item "XSS"', $message);
+        }
+
+        $tree = $storage->getTree('main', false);
+
+        $this->assertSame([], $tree);
+    }
+
+    public function testImportRejectsUnsafeTranslationUriInChild(): void
+    {
+        [$manager] = $this->makeManager();
+        $importer = new MenuImporter($manager);
+
+        $payload = [
+            'menu' => 'main',
+            'items' => [
+                [
+                    'label' => 'Parent',
+                    'uri' => '/parent',
+                    'children' => [
+                        ['label' => 'Child', 'uri' => '/child', 'translations' => ['en' => ['uri' => 'vbscript:x']]],
+                    ],
+                ],
+            ],
+        ];
+
+        $this->expectException(DomainException::class);
+        $this->expectExceptionMessage('translations[en].uri');
+
+        $importer->import($payload);
     }
 }

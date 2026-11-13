@@ -17,6 +17,7 @@ use Danilovl\MenuBuilderBundle\Model\{
     MenuItemInterface
 };
 use Danilovl\MenuBuilderBundle\Exception\MenuItemNotFoundException;
+use Danilovl\MenuBuilderBundle\Security\UriSafety;
 use Danilovl\MenuBuilderBundle\Storage\StorageInterface;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
@@ -140,6 +141,8 @@ readonly class MenuManager
             throw new DomainException($message);
         }
 
+        $this->assertSafeUris($item);
+
         $errors = $this->validator->validate($item);
         if (count($errors) === 0) {
             return;
@@ -152,6 +155,28 @@ readonly class MenuManager
         $errorMessage = 'Invalid menu item: ' . implode('; ', $messages);
 
         throw new DomainException($errorMessage);
+    }
+
+    private function assertSafeUris(MenuItemInterface $item): void
+    {
+        $uris = ['uri' => $item->getUri()];
+        foreach ($item->getTranslations() as $locale => $translation) {
+            $uris[sprintf('translations[%s].uri', $locale)] = $translation['uri'] ?? null;
+        }
+
+        foreach ($uris as $path => $uri) {
+            if ($uri === null || $uri === '' || UriSafety::isSafe($uri)) {
+                continue;
+            }
+
+            $message = sprintf(
+                'Invalid menu item: %s: URI scheme "%s" is not allowed.',
+                $path,
+                (string) UriSafety::extractScheme($uri)
+            );
+
+            throw new DomainException($message);
+        }
     }
 
     public function save(MenuItemInterface $item): void

@@ -19,13 +19,17 @@
         "symfony/dependency-injection": "^8.0",
         "symfony/event-dispatcher": "^8.0",
         "symfony/framework-bundle": "^8.0",
-        "symfony/security-bundle": "^8.0",
         "symfony/serializer": "^8.0",
+        "symfony/twig-bundle": "^8.0",
         "symfony/uid": "^8.0",
         "symfony/validator": "^8.0",
-        "symfony/twig-bundle": "^8.0"
+        "symfony/yaml": "^8.0"
+    },
+    "suggest": {
+        "symfony/security-bundle": "Role, user and visibility restrictions for menu items"
     },
     "require-dev": {
+        "symfony/security-bundle": "^8.0",
         "friendsofphp/php-cs-fixer": "^3.92.5",
         "phpstan/extension-installer": "^1.4.3",
         "phpstan/phpstan": "^2.1.33",

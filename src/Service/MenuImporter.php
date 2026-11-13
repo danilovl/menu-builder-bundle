@@ -4,6 +4,7 @@ namespace Danilovl\MenuBuilderBundle\Service;
 
 use DomainException;
 use Danilovl\MenuBuilderBundle\Model\MenuItemInterface;
+use Danilovl\MenuBuilderBundle\Security\UriSafety;
 
 readonly class MenuImporter
 {
@@ -56,6 +57,8 @@ readonly class MenuImporter
             throw new DomainException('Each item must have a string "label".');
         }
 
+        self::assertSafeUris($payload);
+
         $item = $this->menus->create($payload, false);
         $count = 1;
 
@@ -74,6 +77,38 @@ readonly class MenuImporter
         $this->menus->save($item);
 
         return $count;
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     */
+    private static function assertSafeUris(array $data): void
+    {
+        $uris = ['uri' => $data['uri'] ?? null];
+
+        $translations = $data['translations'] ?? [];
+        if (is_array($translations)) {
+            foreach ($translations as $locale => $translation) {
+                if (is_array($translation)) {
+                    $uris[sprintf('translations[%s].uri', $locale)] = $translation['uri'] ?? null;
+                }
+            }
+        }
+
+        foreach ($uris as $path => $uri) {
+            if (!is_string($uri) || $uri === '' || UriSafety::isSafe($uri)) {
+                continue;
+            }
+
+            $message = sprintf(
+                'Imported item "%s": %s: URI scheme "%s" is not allowed.',
+                is_string($data['label'] ?? null) ? $data['label'] : '',
+                $path,
+                (string) UriSafety::extractScheme($uri)
+            );
+
+            throw new DomainException($message);
+        }
     }
 
     /**

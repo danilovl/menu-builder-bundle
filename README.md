@@ -17,7 +17,7 @@ rendering, and a Vue 3 admin SPA.
 - Time-bound publish window (`publishedAt` / `unpublishedAt`)
 - Per-locale labels and URIs (translations) plus optional Symfony Translator integration with `previewLocale` for the admin tree
 - Soft delete with restore (Doctrine driver)
-- Permission filtering via a Symfony security voter — extend it like any other voter
+- Permission filtering via a Symfony security voter — extend it like any other voter (`symfony/security-bundle` is optional: without it only unrestricted, published items are shown)
 - Vue 3 admin: drag-drop reordering, inline rename (double-click), multi-select bulk actions, trash, JSON import/export, cross-menu search, 10 UI locales
 - Live autocomplete in the editor: Symfony route catalog (`route_catalog.preload_limit` switches to lazy server search above the threshold), role picker from `security.role_hierarchy.roles`, user picker via pluggable `UserCatalogInterface`
 - Twig rendering through overridable blocks; bundled themes for Bootstrap 5 and Inspinia (metismenu sidebar)
@@ -242,6 +242,19 @@ without writing a custom template.
 Request payloads are mapped through `#[MapRequestPayload]` DTOs and validated
 with Symfony Validator. HTTP status codes use `Response::HTTP_*` constants —
 404 for missing items, 422 for domain/validation errors, 201 on create.
+
+### Security notes
+
+- **Request format.** Admin endpoints accept only `Content-Type: application/json` (415 otherwise).
+- **Same-origin check.** State-changing requests (`POST`/`PUT`/`PATCH`/`DELETE`) to the bundle API are
+  rejected with 403 when `Sec-Fetch-Site` is anything other than `same-origin`/`none`. If the header is
+  missing, the host from `Origin` is compared with the request host (scheme and port are ignored, so a
+  TLS-terminating reverse proxy works even without `trusted_proxies`). An admin UI served from another
+  subdomain (`same-site`) is rejected.
+- **URI schemes.** Only `http`, `https`, `mailto`, `tel` and relative URIs are accepted for `uri` and
+  `translations.*.uri` (create, update, import). `javascript:`, `data:`, `vbscript:` and any other scheme
+  is rejected with 422; control characters inside the scheme (`java\tscript:`) are detected too. Twig
+  renders an unsafe stored URI as `#` and the public tree API returns it as `null`.
 
 Sample create payload:
 

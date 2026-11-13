@@ -592,7 +592,11 @@ class MenuItem implements MenuItemInterface
      */
     public function getChildren(): Collection
     {
-        return $this->children;
+        $activeChildren = $this->children->filter(static function (self $child): bool {
+            return $child->getDeletedAt() === null;
+        });
+
+        return new ArrayCollection(array_values($activeChildren->toArray()));
     }
 
     public function addChild(MenuItemInterface $child): self
@@ -639,7 +643,7 @@ class MenuItem implements MenuItemInterface
 
     public function hasChildren(): bool
     {
-        return !$this->children->isEmpty();
+        return !$this->getChildren()->isEmpty();
     }
 
     public function getCreatedAt(): DateTimeImmutable

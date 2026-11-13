@@ -16,6 +16,7 @@ services:
       - '../../Model'
       - '../../Exception'
       - '../../Attribute'
+      - '../../Validator/Constraints/SafeUri.php'
       - '../../Matcher/Voter/RegexVoter.php'
       - '../../MenuBuilderBundle.php'
 

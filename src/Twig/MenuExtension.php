@@ -5,7 +5,9 @@ namespace Danilovl\MenuBuilderBundle\Twig;
 use Danilovl\MenuBuilderBundle\DependencyInjection\MenuBuilderConfig;
 use Danilovl\MenuBuilderBundle\Matcher\Matcher;
 use Danilovl\MenuBuilderBundle\Model\MenuItemInterface;
+use Danilovl\MenuBuilderBundle\Security\UriSafety;
 use Danilovl\MenuBuilderBundle\Service\MenuManager;
+use Symfony\Component\Routing\Exception\ExceptionInterface as RoutingExceptionInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 use Twig\{
@@ -91,7 +93,7 @@ class MenuExtension extends AbstractExtension
     {
         $uri = $locale !== null ? $item->getUriForLocale($locale) : $item->getUri();
         if ($uri !== null && $uri !== '') {
-            return $uri;
+            return UriSafety::isSafe($uri) ? $uri : '#';
         }
 
         $route = $item->getRoute();
@@ -99,10 +101,14 @@ class MenuExtension extends AbstractExtension
             return '#';
         }
 
-        return $this->urlGenerator->generate(
-            name: $route,
-            parameters: $item->getRouteParams()
-        );
+        try {
+            return $this->urlGenerator->generate(
+                name: $route,
+                parameters: $item->getRouteParams()
+            );
+        } catch (RoutingExceptionInterface) {
+            return '#';
+        }
     }
 
     public function label(MenuItemInterface $item, ?string $locale = null): string

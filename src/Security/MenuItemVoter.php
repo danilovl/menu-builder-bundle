@@ -60,7 +60,7 @@ class MenuItemVoter extends Voter
 
         $now = new DateTimeImmutable;
 
-        return !(!$subject->isPublishedAt($now));
+        return $subject->isPublishedAt($now);
     }
 
     /**
@@ -69,6 +69,5 @@ class MenuItemVoter extends Voter
     private function hasAnyRole(array $roles): bool
     {
         return array_any($roles, fn (string $role): bool => $this->auth->isGranted($role));
-
     }
 }

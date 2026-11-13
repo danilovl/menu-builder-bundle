@@ -122,4 +122,46 @@ final class MenuItemNormalizerTest extends TestCase
         $expectedParentId = $parent->getId();
         $this->assertSame($expectedParentId, $result['parentId']);
     }
+
+    public function testUrisAreNotSanitizedByDefault(): void
+    {
+        $item = DetachedMenuItem::create('main', 'XSS');
+        $item->setUri('javascript:alert(1)');
+
+        $normalizer = new MenuItemNormalizer;
+
+        $result = $normalizer->normalize($item);
+
+        $this->assertSame('javascript:alert(1)', $result['uri']);
+    }
+
+    public function testNormalizeTreeSanitizesUnsafeUris(): void
+    {
+        $parent = DetachedMenuItem::create('main', 'Parent');
+        $parent->setUri('javascript:alert(1)');
+        $parent->setTranslations([
+            'cs' => ['label' => 'Rodic', 'uri' => 'data:text/html,x'],
+            'en' => ['uri' => '/en']
+        ]);
+
+        $child = DetachedMenuItem::create('main', 'Child');
+        $child->setUri("vb\nscript:msgbox(1)");
+        $parent->addChild($child);
+
+        $safe = DetachedMenuItem::create('main', 'Safe');
+        $safe->setUri('https://example.com');
+
+        $normalizer = new MenuItemNormalizer;
+
+        $expectedTranslations = ['cs' => ['label' => 'Rodic'], 'en' => ['uri' => '/en']];
+
+        $normalized = $normalizer->normalize($parent, sanitizeUris: true);
+        $tree = $normalizer->normalizeTree([$parent, $safe], sanitizeUris: true);
+
+        $this->assertNull($normalized['uri']);
+        $this->assertSame($expectedTranslations, $normalized['translations']);
+        $this->assertNull($normalized['children'][0]['uri']);
+        $this->assertNull($tree[0]['uri']);
+        $this->assertSame('https://example.com', $tree[1]['uri']);
+    }
 }

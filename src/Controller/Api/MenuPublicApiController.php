@@ -45,7 +45,11 @@ readonly class MenuPublicApiController
             $previewLocale = $previewLocaleRaw;
         }
 
-        $items = $this->normalizer->normalizeTree($tree, $previewLocale);
+        $items = $this->normalizer->normalizeTree(
+            tree: $tree,
+            previewLocale: $previewLocale,
+            sanitizeUris: true
+        );
         $payload = [
             'menu' => $name,
             'items' => $items,

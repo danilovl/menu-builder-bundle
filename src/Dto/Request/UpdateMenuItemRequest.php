@@ -2,6 +2,7 @@
 
 namespace Danilovl\MenuBuilderBundle\Dto\Request;
 
+use Danilovl\MenuBuilderBundle\Validator\Constraints\SafeUri;
 use Symfony\Component\Validator\Constraints as Assert;
 
 readonly class UpdateMenuItemRequest
@@ -18,6 +19,8 @@ readonly class UpdateMenuItemRequest
     public function __construct(
         #[Assert\Length(max: 255)]
         public ?string $label = null,
+        #[Assert\Length(max: 1_024)]
+        #[SafeUri]
         public ?string $uri = null,
         public ?string $route = null,
         public ?array $routeParams = null,
@@ -32,6 +35,13 @@ readonly class UpdateMenuItemRequest
         public ?array $allowedUsers = null,
         public ?string $target = null,
         public ?string $visibility = null,
+        #[Assert\All(constraints: [
+            new Assert\Collection(
+                fields: ['uri' => new Assert\Optional(new SafeUri)],
+                allowExtraFields: true,
+                allowMissingFields: true
+            )
+        ])]
         public ?array $translations = null,
         public ?array $dependentActiveRoutes = null,
         public ?bool $labelTranslated = null,

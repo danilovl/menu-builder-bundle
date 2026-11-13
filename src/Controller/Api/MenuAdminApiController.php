@@ -40,7 +40,7 @@ readonly class MenuAdminApiController
 
     #[Route(path: '/items/bulk-delete', name: 'bulk_delete', methods: [Request::METHOD_POST])]
     public function bulkDelete(
-        #[MapRequestPayload] BulkItemsRequest $payload,
+        #[MapRequestPayload(acceptFormat: 'json')] BulkItemsRequest $payload,
     ): JsonResponse {
         $deleted = 0;
         $errors = [];
@@ -58,7 +58,7 @@ readonly class MenuAdminApiController
 
     #[Route(path: '/items/bulk-active', name: 'bulk_active', methods: [Request::METHOD_POST])]
     public function bulkSetActive(
-        #[MapRequestPayload] BulkItemsRequest $payload,
+        #[MapRequestPayload(acceptFormat: 'json')] BulkItemsRequest $payload,
     ): JsonResponse {
         if ($payload->active === null) {
             return new JsonResponse(['error' => 'active flag is required'], Response::HTTP_UNPROCESSABLE_ENTITY);
@@ -96,7 +96,7 @@ readonly class MenuAdminApiController
 
     #[Route(path: '/menus/import', name: 'import', methods: [Request::METHOD_POST])]
     public function importMenu(
-        #[MapRequestPayload] ImportMenuRequest $payload,
+        #[MapRequestPayload(acceptFormat: 'json')] ImportMenuRequest $payload,
     ): JsonResponse {
         try {
             $result = $this->importer->import($payload->toArray(), $payload->overrideMenuName);
@@ -164,7 +164,7 @@ readonly class MenuAdminApiController
     #[Route(path: '/menus/{name}', name: 'rename_menu', methods: [Request::METHOD_PATCH])]
     public function renameMenu(
         string $name,
-        #[MapRequestPayload] RenameMenuRequest $payload,
+        #[MapRequestPayload(acceptFormat: 'json')] RenameMenuRequest $payload,
     ): JsonResponse {
         try {
             $this->menus->renameMenu($name, $payload->name);
@@ -192,7 +192,7 @@ readonly class MenuAdminApiController
     #[Route(path: '/menus/{name}/active', name: 'toggle_menu_active', methods: [Request::METHOD_POST])]
     public function toggleMenuActive(
         string $name,
-        #[MapRequestPayload] ToggleActiveRequest $payload,
+        #[MapRequestPayload(acceptFormat: 'json')] ToggleActiveRequest $payload,
     ): JsonResponse {
         try {
             $this->menus->setMenuActive($name, $payload->active);
@@ -206,7 +206,7 @@ readonly class MenuAdminApiController
     #[Route(path: '/items', name: 'create', methods: [Request::METHOD_POST])]
     public function createItem(
         Request $request,
-        #[MapRequestPayload] CreateMenuItemRequest $payload,
+        #[MapRequestPayload(acceptFormat: 'json')] CreateMenuItemRequest $payload,
     ): JsonResponse {
         try {
             $item = $this->menus->create($payload->toArray());
@@ -224,7 +224,7 @@ readonly class MenuAdminApiController
     public function updateItem(
         string $id,
         Request $request,
-        #[MapRequestPayload] UpdateMenuItemRequest $payload,
+        #[MapRequestPayload(acceptFormat: 'json')] UpdateMenuItemRequest $payload,
     ): JsonResponse {
         try {
             $item = $this->menus->update($id, $payload->toArray());
@@ -278,7 +278,7 @@ readonly class MenuAdminApiController
     #[Route(path: '/items/{id}/active', name: 'toggle_active', methods: [Request::METHOD_POST])]
     public function toggleActive(
         string $id,
-        #[MapRequestPayload] ToggleActiveRequest $payload,
+        #[MapRequestPayload(acceptFormat: 'json')] ToggleActiveRequest $payload,
     ): JsonResponse {
         try {
             $item = $this->menus->setActive($id, $payload->active);
@@ -293,7 +293,7 @@ readonly class MenuAdminApiController
     #[Route(path: '/items/{id}/move', name: 'move', methods: [Request::METHOD_POST])]
     public function move(
         string $id,
-        #[MapRequestPayload] MoveItemRequest $payload,
+        #[MapRequestPayload(acceptFormat: 'json')] MoveItemRequest $payload,
     ): JsonResponse {
         try {
             $item = $this->menus->move(
